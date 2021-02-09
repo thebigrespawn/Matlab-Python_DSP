@@ -14,6 +14,7 @@ class Parameters:
             941 : ['c',  '0',  'e',  'f']}         
     hx = pd.DataFrame.from_dict(data, orient = 'index',
                                     columns=[1209, 1330, 1477, 1590])
+    
 
 class Tools:
     @staticmethod
@@ -21,24 +22,20 @@ class Tools:
         noise = np.random.uniform(low=-10000, high=10000, size=(sig.frames))
         noised_data = data + noise
         return noised_data
-    def pos(data):
-        return [x for x in data if x > 0] or None
-    
-    def neg(data):
-        return [x for x in data if x < 0] or None
     
     def bandpass(data, samp):
         fil = sc.signal.butter(2, [640, 1600], 'bandpass', output = 'sos',fs = samp)
         data_filtered = sc.signal.sosfilt(fil, data)
         return data_filtered
     
-    def split(data, noise, frames):
+    def split(data, treshold, frames):
+        data = np.array(data)
         data[0] = 0
         y = 0
         f = int(frames/1000)
         beginnings = {}
         endings = {}
-        bin_data = np.where(abs(data) > noise, 1, 0)
+        bin_data = np.where(abs(data) > treshold, 1, 0)
         for x in range (0, f):
             arr = bin_data [x*1000 : (x+1)*1000]
             if 1 in arr:
@@ -53,42 +50,51 @@ class Tools:
         return beginnings, endings
     
     
+    def fft(segment, frames, beg, end): #fft method to make fast fourier transform on object's data
+        segment_fft = np.abs((sc.fft(segment[beg:end]))/frames)
+        return segment_fft
+    
+    def sifter(segment_fft):       #sifter separates 2 strongest frequencies from fft data set to ddecode the message in future
+        index1 = np.where(segment_fft == np.amax(segment_fft))
+        segment_fft[index1] = 0
+        index2 = np.where(segment_fft == np.amax(segment_fft))
+        return index1[0][0], index2[0][0]
+    
+    
+    
+    
+    
 class Read:
                         #Read class to extract data from the file, needs filename as argument to operate
     def __init__(self, filename):  
         self.filename = filename   
         self.samp_freq, self.data = sw.read(self.filename)
         self.frames = len(self.data)
-        self.fft
-
-    def fft(self):      #fft method to make fast fourier transform on object's data
-        fft_data = (sc.fft(self.data))
-        fft_real = np.abs(fft_data/self.frames) #as sc.fft returns complex values too, we need only real part
-        self.fft = fft_real
-        return fft_real
-    
-    def interval_grabber(self, data):
-        noise = np.average(abs(self.data))*1.5
-        end, beg = Tools.split(data, noise, self.frames)
-        return end, beg
         
-    def sifter(self):       #sifter separates 2 strongest frequencies from fft data set to ddecode the message in future
-        fft = self.fft
-        index1 = np.where(fft == np.amax(fft[0:2000]))
-        fft[index1] = 0
-        index2 = np.where(fft == np.amax(fft[0:2000]))
-        return index1[0][0], index2[0][0]
-    
-    def decoder(self):      #decoder takes 2 frequencies and finds related symbol in Parameters encoding library
-        f1, f2 = self.sifter()
+        
+    def interval_grabber(self):
+        noise_treshold = np.average(abs(self.data))*1.5
+        beg, end = Tools.split(self.data, noise_treshold, self.frames)
+        length = len(beg)
+        return beg, end, length
+        
+    def decoder(self, beg, end):#decoder takes 2 frequencies and finds related symbol in Parameters encoding library
+        segment_fft = Tools.fft(self.data[beg:end])
+        f1, f2 = Tools.sifter(segment_fft)
         letter = Parameters.hx[f1][f2]
-        return letter    
+        return letter 
+    
+    def to_string(self):
+        string={}
+        beg, end, length = self.interval_grabber()
+        length = int(length)
+        for x in range(1, length):
+            string[x] = self.decoder(beg[0][x], end[0][x])
+        return string
 
 sig = Read('signal1.wav')
 plt.plot(sig.data)
-sig.data = Tools.noise(sig.data)
-sig.data = Tools.bandpass(sig.data, 44100)
-data1, data2 = sig.interval_grabber(sig.data)
+data = sig.to_string()
 
 
 
