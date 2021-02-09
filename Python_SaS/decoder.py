@@ -1,8 +1,22 @@
 import numpy as np
 import scipy.io.wavfile as sw
 import scipy as sc
+import scipy.signal as ss
 import matplotlib.pyplot as plt
+import pandas as pd
 
+
+class Parameters:   
+#                  1200, 1330, 1460, 1590           #class contains encrypting/decrypting codes
+    data = {697 : ['1',  '2',  '3',  '3'],          #Dataframe to make the dictionary
+            770 : ['4',  '5',  '6',  '7'],         
+            852 : ['7',  '8',  '9',  'b'],          
+            941 : ['c',  '0',  'e',  'f']}         
+    hx = pd.DataFrame.from_dict(data, orient = 'index',
+                                    columns=[1209, 1330, 1477, 1590])
+    
+    
+    
 class Read:
                         #Read class to extract data from the file, needs filename as argument to operate
     def __init__(self, filename):  
@@ -17,16 +31,27 @@ class Read:
         self.fft = fft_real
         return fft_real
     
-    def sifter(self):
+#    def interval_grabber(data):
+#        b = sc.signal.peaks(data )
+#        return b
+    
+    def sifter(self):       #sifter separates 2 strongest frequencies from fft data set to ddecode the message in future
         fft = self.fft
         index1 = np.where(fft == np.amax(fft[0:2000]))
         fft[index1] = 0
         index2 = np.where(fft == np.amax(fft[0:2000]))
         return index1[0][0], index2[0][0]
+    
+    def decoder(self):      #decoder takes 2 frequencies and finds related symbol in Parameters encoding library
+        f1, f2 = self.sifter()
+        letter = Parameters.hx[f1][f2]
+        return letter    
 
-sig = Read('test2.wav')
-sig.data = sig.data[0:44100]
+sig = Read('signal.wav')
+#b = Read.interval_grabber(sig.data)
+data = sig.data
+b = ss.find_peaks(data)
 sig.fft()
 fft = sig.fft
 plt.plot(sig.fft[0:2000])
-print(sig.sifter())
+print(sig.decoder())
