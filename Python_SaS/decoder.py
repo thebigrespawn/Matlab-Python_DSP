@@ -27,19 +27,30 @@ class Tools:
     def neg(data):
         return [x for x in data if x < 0] or None
     
+    def bandpass(data, samp):
         fil = sc.signal.butter(2, [640, 1600], 'bandpass', output = 'sos',fs = samp)
         data_filtered = sc.signal.sosfilt(fil, data)
         return data_filtered
     
     def split(data, noise, frames):
-        val = 1
+        data[0] = 0
+        y = 0
         f = int(frames/1000)
+        beginnings = {}
+        endings = {}
         bin_data = np.where(abs(data) > noise, 1, 0)
         for x in range (0, f):
             arr = bin_data [x*1000 : (x+1)*1000]
-            if val in arr:
-                bin_data[x*1000 :(x+1)*1000] = 1              
-        return bin_data
+            if 1 in arr:
+                bin_data[x*1000 :(x+1)*1000] = 1
+                if bin_data[x*1000 - 1] == 0:
+                    y = y+1
+                    beginnings[x] = x*1000
+            else:
+                if bin_data[x*1000 - 1] == 1:
+                    
+                    endings[y] = x*1000
+        return beginnings, endings
     
     
 class Read:
@@ -57,9 +68,9 @@ class Read:
         return fft_real
     
     def interval_grabber(self, data):
-        noise = np.average(Tools.pos(sig.data))*1.5
-        bin_data = Tools.split(data, noise, self.frames)
-        return bin_data
+        noise = np.average(abs(self.data))*1.5
+        end, beg = Tools.split(data, noise, self.frames)
+        return end, beg
         
     def sifter(self):       #sifter separates 2 strongest frequencies from fft data set to ddecode the message in future
         fft = self.fft
@@ -73,11 +84,13 @@ class Read:
         letter = Parameters.hx[f1][f2]
         return letter    
 
-sig = Read('signal.wav')
+sig = Read('signal1.wav')
 plt.plot(sig.data)
 sig.data = Tools.noise(sig.data)
 sig.data = Tools.bandpass(sig.data, 44100)
-data = sig.interval_grabber(sig.data)
+data1, data2 = sig.interval_grabber(sig.data)
+
+
 
 #data1 = sig.data
 #plt.plot(sig.data)
