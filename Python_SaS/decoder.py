@@ -11,10 +11,14 @@ class Parameters:
     data = {697 : ['1',  '2',  '3',  '3'],          #Dataframe to make the dictionary
             770 : ['4',  '5',  '6',  '7'],         
             852 : ['7',  '8',  '9',  'b'],          
-            941 : ['c',  '0',  'e',  'f']}         
+            941 : ['c',  '0',  'e',  'f']}    
+    lower = list(data.keys())    
     hx = pd.DataFrame.from_dict(data, orient = 'index',
                                     columns=[1209, 1330, 1477, 1590])
-    
+    upper = list(hx.keys())
+    highest_freq = max(upper)
+    lowest_freq = min(lower)
+
 
 class Tools:
     
@@ -24,7 +28,7 @@ class Tools:
         return noised_data
     
     def bandpass(data, samp):
-        fil = sc.signal.butter(2, [640, 1600], 'bandpass', output = 'sos',fs = samp)
+        fil = sc.signal.butter(1, [Parameters.lowest_freq*0.8, Parameters.highest_freq*1.2], 'bandpass', output = 'sos',fs = samp)
         data_filtered = sc.signal.sosfilt(fil, data)
         return data_filtered
     
@@ -91,8 +95,8 @@ class Read:
         noise_treshold = np.average(abs(self.data))*1.5
         beg, end = Tools.split(self.data, noise_treshold, self.frames)
         length = len(beg)
-        beg = np.asarray(list(beg.values()))[0]
-        end = np.asarray(list(end.values()))[0]
+        beg = np.asarray(list(beg.values()))
+        end = np.asarray(list(end.values()))
         return beg, end, length
 
         
@@ -107,15 +111,18 @@ class Read:
         string={}
         beg, end, length = self.interval_grabber()
         
-        for x in range(0, length):
-            string[x] = self.decoder(beg[x], end[x])
+        for i in range(0, length):
+
+            string = self.decoder(beg[i], end[i])
             
-        return string
+        return string, beg, end,
 
 
-sig = Read('signal.wav')
+sig = Read('test2.wav')
 data = sig.data
 string = sig.to_string()
+#u = Parameters.highest_freq
+#d = Parameters.lowest_freq
 #beg, end = Tools.split(sig.data, 20000, sig.frames)
 #beg = np.asarray(list(beg.values()))[0]
 #end = np.asarray(list(end.values()))[0]
