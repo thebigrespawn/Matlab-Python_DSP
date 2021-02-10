@@ -17,7 +17,7 @@ class Parameters:
     
 
 class Tools:
-    @staticmethod
+    
     def noise(data):
         noise = np.random.uniform(low=-10000, high=10000, size=(sig.frames))
         noised_data = data + noise
@@ -28,37 +28,52 @@ class Tools:
         data_filtered = sc.signal.sosfilt(fil, data)
         return data_filtered
     
+    
+    
     def split(data, treshold, frames):
-        data = np.array(data)
-        data[0] = 0
-        y = 0
-        f = int(frames/1000)
-        beginnings = {}
-        endings = {}
-        bin_data = np.where(abs(data) > treshold, 1, 0)
-        for x in range (0, f):
-            arr = bin_data [x*1000 : (x+1)*1000]
-            if 1 in arr:
-                bin_data[x*1000 :(x+1)*1000] = 1
-                if bin_data[x*1000 - 1] == 0:
-                    y = y+1
-                    beginnings[x] = x*1000
-            else:
-                if bin_data[x*1000 - 1] == 1:
+        try:
+            data = np.array(data)
+            data[0] = 0
+            y = 0
+            f = int(frames/1000)
+            beginnings = {}
+            endings = {}
+            bin_data = np.where(abs(data) > treshold, 1, 0)
+            for x in range (0, f):
+                arr = bin_data [x*1000 : (x+1)*1000]
+                if 1 in arr:
+                    bin_data[x*1000 :(x+1)*1000] = 1
+                    if bin_data[x*1000 - 1] == 0:
+                        y = y+1
+                        beginnings[x] = x*1000
+                    else:
+                        if bin_data[x*1000 - 1] == 1:
                     
-                    endings[y] = x*1000
-        return beginnings, endings
+                            endings[y] = x*1000
+            return beginnings, endings
+        except:
+            print('error split')
+            
+            
     
-    
-    def fft(segment, frames, beg, end): #fft method to make fast fourier transform on object's data
-        segment_fft = np.abs((sc.fft(segment[beg:end]))/frames)
-        return segment_fft
+    def fft(data, frames, beg, end): #fft method to make fast fourier transform on object's data
+        try:
+            segment_fft = np.abs((sc.fft(data[beg+1000:end-1000]))/frames)[0:20000]
+            return segment_fft
+        except:
+            print('error fft')
     
     def sifter(segment_fft):       #sifter separates 2 strongest frequencies from fft data set to ddecode the message in future
-        index1 = np.where(segment_fft == np.amax(segment_fft))
+
+        index1 = np.where(segment_fft == np.amax(segment_fft))[0][0]
+#        index1 = npasarray(list(index1.values()))
         segment_fft[index1] = 0
-        index2 = np.where(segment_fft == np.amax(segment_fft))
-        return index1[0][0], index2[0][0]
+        index2 = np.where(segment_fft == np.amax(segment_fft))[0][0]
+        if index1>index2:
+            return index2, index1
+        
+        else:
+            return index1, index2
     
     
     
@@ -76,26 +91,36 @@ class Read:
         noise_treshold = np.average(abs(self.data))*1.5
         beg, end = Tools.split(self.data, noise_treshold, self.frames)
         length = len(beg)
+        beg = np.asarray(list(beg.values()))[0]
+        end = np.asarray(list(end.values()))[0]
         return beg, end, length
+
         
     def decoder(self, beg, end):#decoder takes 2 frequencies and finds related symbol in Parameters encoding library
-        segment_fft = Tools.fft(self.data[beg:end])
+        segment_fft = Tools.fft(self.data[beg:end], self.frames, beg, end)
         f1, f2 = Tools.sifter(segment_fft)
         letter = Parameters.hx[f1][f2]
         return letter 
+
     
     def to_string(self):
         string={}
         beg, end, length = self.interval_grabber()
-        length = int(length)
-        for x in range(1, length):
-            string[x] = self.decoder(beg[0][x], end[0][x])
+        
+        for x in range(0, length):
+            string[x] = self.decoder(beg[x], end[x])
+            
         return string
 
-sig = Read('signal1.wav')
-plt.plot(sig.data)
-data = sig.to_string()
 
+sig = Read('signal.wav')
+data = sig.data
+string = sig.to_string()
+#beg, end = Tools.split(sig.data, 20000, sig.frames)
+#beg = np.asarray(list(beg.values()))[0]
+#end = np.asarray(list(end.values()))[0]
+#segment_fft = Tools.fft(sig.data, sig.frames, beg, end)
+#index1 , index2 = Tools.sifter(segment_fft)
 
 
 #data1 = sig.data
