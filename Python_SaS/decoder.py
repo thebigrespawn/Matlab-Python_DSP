@@ -28,10 +28,16 @@ class Tools:
         return noised_data
     
     def bandpass(data, samp):
-        fil = sc.signal.butter(1, [Parameters.lowest_freq*0.8, Parameters.highest_freq*1.2], 'bandpass', output = 'sos',fs = samp)
+        fil = sc.signal.butter(1, [500, 2000], 'bandpass', output = 'sos',fs = samp)
         data_filtered = sc.signal.sosfilt(fil, data)
         return data_filtered
     
+    def approximate(array1, array2, val1, val2):
+        array1 = np.asarray(array1)
+        idx1 = (np.abs(array1 - val1)).argmin()
+        array2 = np.asarray(array2)
+        idx2 = (np.abs(array2 - val2)).argmin()
+        return array1[idx1] , array2[idx2]      
     
     
     def split(data, treshold, frames):
@@ -70,7 +76,6 @@ class Tools:
     def sifter(segment_fft):       #sifter separates 2 strongest frequencies from fft data set to ddecode the message in future
 
         index1 = np.where(segment_fft == np.amax(segment_fft))[0][0]
-#        index1 = npasarray(list(index1.values()))
         segment_fft[index1] = 0
         index2 = np.where(segment_fft == np.amax(segment_fft))[0][0]
         if index1>index2:
@@ -79,7 +84,7 @@ class Tools:
         else:
             return index1, index2
     
-    
+
     
     
     
@@ -92,7 +97,7 @@ class Read:
         
         
     def interval_grabber(self):
-        noise_treshold = np.average(abs(self.data))*1.5
+        noise_treshold = np.average(abs(self.data))*1.4
         beg, end = Tools.split(self.data, noise_treshold, self.frames)
         length = len(beg)
         beg = np.asarray(list(beg.values()))
@@ -100,27 +105,42 @@ class Read:
         return beg, end, length
 
         
-    def decoder(self, beg, end):#decoder takes 2 frequencies and finds related symbol in Parameters encoding library
-        segment_fft = Tools.fft(self.data[beg:end], self.frames, beg, end)
-        f1, f2 = Tools.sifter(segment_fft)
-        letter = Parameters.hx[f1][f2]
-        return letter 
-
     
-    def to_string(self):
+    def decode(self):
         string={}
         beg, end, length = self.interval_grabber()
         
+        
         for i in range(0, length):
-
-            string = self.decoder(beg[i], end[i])
+            segment_fft = Tools.fft(sig.data, sig.frames, beg[i], end[i])
+            index1, index2 = Tools.sifter(segment_fft)
+            index1, index2 = Tools.approximate(Parameters.lower, Parameters.upper, index1, index2)
+            letter = Parameters.hx[index2][index1]
+            string[i] = letter
             
-        return string, beg, end,
+        return string
 
 
-sig = Read('test2.wav')
-data = sig.data
-string = sig.to_string()
+sig = Read('signal.wav')
+string = sig.decode()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#sig.data = Tools.bandpass(sig.data, sig.frames)
+#data = sig.data
+#beg, end, length = sig.interval_grabber()
+#string = sig.to_string()
 #u = Parameters.highest_freq
 #d = Parameters.lowest_freq
 #beg, end = Tools.split(sig.data, 20000, sig.frames)
