@@ -84,7 +84,7 @@ class Write(Parameters):
         return sin
     
 sig1 = Write('signal.wav')  
-sig1.string = '0123ff56ff78'
+sig1.string = '14882281337ffccdd'
 sig = sig1.generate_file('rp')  
 #Write.wav_constructor(687, 1209, 'signal1.wav')
 #Write.wav_constructor(0, 0, 'signal1.wav')

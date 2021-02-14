@@ -23,7 +23,7 @@ class Parameters:
 class Tools:
     
     def noise(data):
-        noise = np.random.uniform(low=-20000, high=20000, size=(sig.frames))        #noise generator for testing
+        noise = np.random.uniform(low=-10000, high=10000, size=(sig.frames))        #noise generator for testing
         noised_data = data + noise
         return noised_data
     
