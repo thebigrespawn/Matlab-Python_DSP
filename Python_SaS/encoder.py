@@ -13,14 +13,14 @@ class Parameters:
             941 : ['c',  'd',  'e',  'f']}    
     hx = pd.DataFrame.from_dict(data, orient = 'index',
                                     columns=[1209, 1330, 1477, 1590])
-    data_complexity = 2
-    gen_samplerate = 44100
-    signal_duration = 1
+    data_complexity = 2     #you can decode your data with more than 1 frequency, just mention it there
+    gen_samplerate = 44100  #sampling frequency of created file
+    signal_duration = 1     #intervas' longevity
     
 
 class Write(Parameters):
     
-    def __init__(self, filename):
+    def __init__(self, filename):               # extracting all necessary data from file by creatng object
         self.filename = filename
         self.string = {}
         self.data_comp = Parameters.data_complexity
@@ -28,28 +28,28 @@ class Write(Parameters):
         
                 
     @staticmethod    
-    def wav_constructor(freq1, freq2, filename, samplerate, t):
-
+    def wav_constructor(freq1, freq2, filename, samplerate, t):     # method to create the wav file itself
         T = 1./samplerate
         N = samplerate * t
         w = 2.*np.pi
         t_seq = np.arange(N)*T
         amplitude = (np.iinfo(np.int16).max)/2
-        data = amplitude * (np.sin(w*freq1*t_seq) + np.sin(w*freq2*t_seq))
-        data_void = 0*np.sin(w*freq1*t_seq)
-        sin = np.hstack([data, data_void])
         
-        if os.path.isfile(filename):
-            f, temp = sw.read(filename)
+        data = amplitude * (np.sin(w*freq1*t_seq) + np.sin(w*freq2*t_seq))  #create 2 sinusoids with desirable frequencies to encode letter
+        data_void = 0*np.sin(w*freq1*t_seq)  #create silent region to properly analyse signal in future
+        sin = np.hstack([data, data_void])  #stack loud and silent regions
+        
+        if os.path.isfile(filename):            #check whether file exists
+            f, temp = sw.read(filename)         #if it exists combine new encoded letter with it
             sin = np.hstack([temp, sin])
             sw.write(filename, samplerate, sin.astype(np.int16))
         else:
-            sw.write(filename, samplerate, sin.astype(np.int16))
+            sw.write(filename, samplerate, sin.astype(np.int16)) #else create new file
             
         return sin
         
     @staticmethod   
-    def char_decoder(char):
+    def char_decoder(char):         #method to find which frequencies are assigned to the following letter duing the encoding process
         listOfPos = [] 
         result = Parameters.hx.isin([char]) 
         seriesObj = result.any() 
@@ -65,86 +65,25 @@ class Write(Parameters):
         freq2 = np.array(listOfPos)[0][1]
         
         freq1 = int(freq1)
-        freq2 = int(freq2)
+        freq2 = int(freq2)      #returns frequencies from table in "Parameters"
         return freq1, freq2     
         
     
     
     
-    def generate_file(self, par):
+    def generate_file(self, par):           # method to run all the methods in collaboration
         string = list(self.string)
         if par == 'rp':
             print('file replaced')
             os.remove(self.filename)
         else:
-            print('writing continued')
+            if par =='cw':
+                print('writing continued')
         for x in string:
-            freq1, freq2 = (Write.char_decoder(x))
+            freq1, freq2 = Write.char_decoder(x)
             sin = Write.wav_constructor(freq1, freq2, self.filename, self.samplerate, self.signal_duration)    
         return sin
     
-sig1 = Write('signal.wav')  
-sig1.string = '14882281337ffccdd'
-sig = sig1.generate_file('rp')  
-#Write.wav_constructor(687, 1209, 'signal1.wav')
-#Write.wav_constructor(0, 0, 'signal1.wav')
-#Write.wav_constructor(941, 1330, 'signal1.wav')
-#Write.wav_constructor(0, 0, 'signal1.wav')
-#Write.wav_constructor(687, 1209, 'signal1.wav')
-#Write.wav_constructor(687, 1209, 'signal1.wav')
-#Write.wav_constructor(687, 1209, 'signal1.wav')
-    
-#sin = Write.wav_constructor(100, 2200, 'signal.wav')    
-    
-
-##sig1.data  = sig1.medfil()
-###sig1.data = sig1.bandpass(1, 2000)
-#sig1.fft = sig1.fft()
-#sig1.spike()
-##sig = sig1.fft[0 : 2000]
-##plt.plot(sig)
-##t = 1
-##fs = 44100       
-##freq1 = 440
-##freq2 = 880
-##file = "test.wav"
-#arr = arr.array[697, 1209]
-#a = arr[0]
-#b = arr[1]
-#hh = Parameters.hx[a][b]  
-#    
-    
-    
-#sine_wave1 = np.array([sc.sin(2 * np.pi * 440 * x/44100) for x in range(1 * 44100)])
-#sine_wave2 = np.array([sc.sin(2 * np.pi * 880 * x/44100) for x in range(1 * 44100)])
-#amplitude = (np.iinfo(np.int16).max)/2
-#sin = sine_wave1 + sine_wave2
-#sin = amplitude * sin
-#sw.write('sintest.wav', 44100, sin.astype(np.int16))
-#fs, data = sw.read('sintest.wav')
-#fft = np.abs(sc.fft(data))
-#plt.plot(fft)
-
-
-
-
-
-
-#sin = sine_wave1 + sine_wave2
-
-#fs, data = sw.read('test1.wav')
-#fft =  np.abs(sc.fft(data[0:44100]))
-#plt.plot(fft[0:2000])
-
-
-
-#x =   EncodeString.wav_constructor(100 ,1000 , 'signal.wav')
-#s = fft(x)
-#plt.plot(s[0:1400])
-#sig.spike(sig)
-
-
-
-
-
-#sig1 = sig1.bandpass(650, 1630)
+sig1 = Write('signal.wav')  #driver code
+sig1.string = 'bca01134ced'
+sig = sig1.generate_file('rp') #choose writing mode from rp - replace file with new and cw - continue writing in existing file

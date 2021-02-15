@@ -30,7 +30,7 @@ class Tools:
     def bandpass(data, samp):
         pl = Parameters.lowest_freq
         pu = Parameters.highest_freq
-        b, a = ss.butter(1, [pl*0.8, pu*1.3], 'bandpass', fs = samp)  #this bandpass filter is adaptable its filtering depends on the coding frequencies
+        b, a = ss.butter(1, [pl*0.8, pu*1.3], 'bandpass', fs = samp)  #this bandpass filter is adaptable its filtering depends on the encoding frequencies
         data_filtered = ss.filtfilt(b, a, data, axis = 0)
         return data_filtered
     
@@ -51,7 +51,7 @@ class Tools:
             beginnings = {}
             endings = {}
             bin_data = np.where(abs(data) > treshold, 1, 0) #it translates arrray with data into binary data to make the regions more distinct
-            for x in range (0, f):                          #this function is also adapts to noise levels within dataset, treshold used to separate signal
+            for x in range (0, f):                          
                 arr = bin_data [x*1000 : (x+1)*1000]
                 if 1 in arr:
                     bin_data[x*1000 :(x+1)*1000] = 1
@@ -95,8 +95,8 @@ class Read:
         self.frames = len(self.data)
         
         
-    def interval_grabber(self):
-        noise_treshold = np.average(abs(self.data))*2
+    def interval_grabber(self):             #method which finds loud regions in dataset to make the further analysis on every segment
+        noise_treshold = np.average(abs(self.data))*2 #puts a treshold which defines whether it is silent region or not
         beg, end = Tools.split(self.data, noise_treshold, self.frames)
         length = len(beg)
         beg = np.asarray(list(beg.values()))
@@ -105,11 +105,11 @@ class Read:
 
         
     
-    def decode(self):
+    def decode(self):  #method to execute all the methods above in iterative way to get the desired result 
         string={}
         beg, end, length = self.interval_grabber()
         
-        for i in range(0, length):
+        for i in range(0, length):  
             segment_fft = Tools.fft(self.data, self.frames, beg[i], end[i])
             index1, index2 = Tools.sifter(segment_fft)
             index1, index2 = Tools.approximate(Parameters.lower, Parameters.upper, index1, index2)
@@ -118,59 +118,11 @@ class Read:
         string = np.asarray(list(string.values()))    
         return string
 
+
+
         
-sig = Read('signal.wav')
+sig = Read('signal.wav')    #the driving code
 sig.data = Tools.noise(sig.data)
 sig.data = Tools.bandpass(sig.data, sig.samp_freq)
 data = sig.data
-#string={}
-#beg, end, length = sig.interval_grabber()
-#for i in range (0, length):
-#    segment_fft = Tools.fft(sig.data, sig.frames, beg[i], end[i])
-#    
-#    index1, index2 = Tools.sifter(segment_fft)
-#    index1, index2 = Tools.approximate(Parameters.lower, Parameters.upper, index1, index2)
-#    letter = Parameters.hx[index2][index1]
-#    string[i] = letter
 string = sig.decode()
-
-
-
-#data = sig.data
-#sig.data = Tools.noise(sig.data)
-#data = Tools.bandpass(sig.data, sig.samp_freq)
-#string, beg, end = sig.decode()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#sig.data = Tools.bandpass(sig.data, sig.frames)
-#data = sig.data
-#beg, end, length = sig.interval_grabber()
-#string = sig.to_string()
-#u = Parameters.highest_freq
-#d = Parameters.lowest_freq
-#beg, end = Tools.split(sig.data, 20000, sig.frames)
-#beg = np.asarray(list(beg.values()))[0]
-#end = np.asarray(list(end.values()))[0]
-#segment_fft = Tools.fft(sig.data, sig.frames, beg, end)
-#index1 , index2 = Tools.sifter(segment_fft)
-
-
-#data1 = sig.data
-#plt.plot(sig.data)
-#mean1 = np.average(Tools.pos(sig.data))*1.5
-#data = cn(data1, sigma = 10)
-##fft = sig.fft
-#plt.plot(sig.fft[0:2000])
-#print(sig.decoder())
